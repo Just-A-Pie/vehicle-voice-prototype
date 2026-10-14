@@ -46,6 +46,28 @@ export VEHICLE_MODEL_PATH=/absolute/path/to/Qwen2.5-Omni-3B
 
 服务预热完成后输出 `OPT_READY`，监听18825，认证信息写入权限0600的 `runtime/endpoint.json`。不要把该文件提交到Git或贴在公共日志中。共享集群需使用获授权的调度方式，不在登录节点运行模型。
 
+### 双卡流式服务
+
+在含vLLM 0.25.1的CUDA环境中准备vLLM-Omni v0.25.0rc1，并应用本仓库的语音分块补丁。`VEHICLE_VLLM_PYTHON` 指向vLLM环境；`VEHICLE_API_PYTHON` 指向已安装 `requirements-inference.txt` 的车载API环境。两者可以不同。
+
+```bash
+export VEHICLE_VLLM_PYTHON=/absolute/path/to/vllm-env/bin/python
+export VEHICLE_API_PYTHON=/absolute/path/to/vehicle-env/bin/python
+bash scripts/setup_vllm_omni.sh
+export VEHICLE_MODEL_PATH=/absolute/path/to/Qwen2.5-Omni-3B
+bash scripts/run_vllm_streaming.sh
+```
+
+在计算节点申请两张GPU运行。Thinker与Token2Wav使用GPU 0，Talker使用GPU 1，并启用编译、CUDA Graph和12-block波形分块。服务就绪后输出 `VEHICLE_VLLM_READY`；车载API仍监听18825，连接方式与上节相同。配置见 `server_omni25_opt/qwen25_omni_3b_streaming.yaml`，vLLM服务日志写入被忽略的 `output/vllm_streaming/server.log`。
+
+同组11条开发请求的复测命令：
+
+```bash
+"$VEHICLE_API_PYTHON" scripts/smoke_single_call.py --backend vllm \
+  --model "$VEHICLE_MODEL_PATH" --output output/vllm_smoke
+"$VEHICLE_API_PYTHON" scripts/check_vllm_stream.py
+```
+
 ## 打开座舱页面
 
 与GPU服务在同一台机器时：
@@ -70,6 +92,7 @@ VEHICLE_LOCAL_PORT=8770 python3 local_server.py
 - `single_call.py` / `single_call_prompt.txt`：统一协议、输入构造、执行和回复放行。
 - `small_model_eval/backend.py`：Omni加载、编码、生成与时间记录。
 - `server_omni25_opt/native_backend.py`：阶段计时、原生语音与RoPE兼容修复。
+- `server_omni25_opt/vllm_backend.py`：双卡模型API、严格文字约束与有序PCM语音块。
 - `agent_service.py` / `realtime_turn.py`：HTTP、会话锁、状态与音频事件。
 - `cabin.py` / `cabin_contract.json`：23项模拟状态及执行规则。
 - `web/slai/` / `web/stream-player.js`：界面、录音和播放。

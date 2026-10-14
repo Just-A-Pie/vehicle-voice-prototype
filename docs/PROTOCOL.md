@@ -21,7 +21,7 @@
 
 使用 `profile:"slai"`。`POST /session` 创建会话；`POST /turn-stream` 提交 `session_id`、`request_id` 以及 `text` 或base64 WAV `audio` 二选一。音频输入16kHz单声道，0.2–20秒。
 
-回复是NDJSON事件：初始state → 执行后state → transcript → audio → done；错误可产生error事件。成功回复不能在执行确认前显示。当前audio为24kHz单声道PCM16，完整音频生成后发送一个块；HTTP名称带stream不代表模型原生流式首声。
+回复是NDJSON事件：初始state → 执行后state → transcript → audio → done；错误可产生error事件。成功回复不能在执行确认前显示。audio为24kHz单声道PCM16，带从0递增的sequence。双卡vLLM后端在模型生成期间发送多个音频块；HF参考后端发送一个完整音频块。
 
 同会话最近64个request_id去重；重复返回409。播报失败不重做已经执行的动作。手动控制/复位清除模型历史但保留近期ID。该去重不跨进程重启持久化。
 

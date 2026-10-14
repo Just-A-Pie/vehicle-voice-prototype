@@ -172,6 +172,21 @@ class SingleDecisionMixin:
     supports_request_id = True
     supported_profiles = ['slai']
 
+    def generate_speech(self, messages, reply, sink):
+        original_sink = self.audio_sink
+        self.audio_sink = None
+        try:
+            spoken, wav = self.generate(messages, audio=True, force_text=reply)
+        finally:
+            self.audio_sink = original_sink
+        if spoken != reply or wav is None or not len(wav) or not np.isfinite(wav).all():
+            raise RuntimeError('播报生成失败，请查看文字和当前设置；操作不会自动重试。')
+        if sink:
+            import base64
+            data = np.clip(np.rint(wav * 32768), -32768, 32767).astype('<i2').tobytes()
+            sink({'pcm': base64.b64encode(data).decode(), 'sample_rate': 24000, 'channels': 1, 'sequence': 0})
+        return spoken, wav
+
     def drop_session(self, sid):
         self.sessions.pop(sid, None)
         # Keep recent request IDs across manual controls/reset to prevent an old
@@ -234,20 +249,12 @@ class SingleDecisionMixin:
         # one separately counted speech generation, with no semantic replanning.
         speech_messages = [{'role': 'system', 'content': IDENTITY},
                            {'role': 'user', 'content': '请严格原样说出下面的文字，不要添加内容：' + reply}]
-        sink = self.audio_sink
-        self.audio_sink = None
-        try:
-            self.speech_model_calls += 1
-            spoken, wav = self.generate(speech_messages, audio=True, force_text=reply)
-        finally:
-            self.audio_sink = sink
+        self.speech_model_calls += 1
+        spoken, wav = self.generate_speech(speech_messages, reply, self.audio_sink)
         if spoken != reply or wav is None or not len(wav) or not np.isfinite(wav).all():
             raise RuntimeError('播报生成失败，请查看文字和当前设置；操作不会自动重试。')
         data = np.clip(np.rint(wav * 32768), -32768, 32767).astype('<i2').tobytes()
         sf.write(folder / (rid + '-reply.wav'), wav, 24000)
-        if sink:
-            import base64
-            sink({'pcm': base64.b64encode(data).decode(), 'sample_rate': 24000, 'channels': 1, 'sequence': 0})
         return {'reply': reply, 'input_text': text, 'pcm': data, 'decision_status': result['status'],
                 'protocol': PROTOCOL, 'semantic_model_calls': self.semantic_model_calls,
                 'speech_model_calls': self.speech_model_calls}

@@ -1,5 +1,6 @@
 """Bounded real-3B comparison; development smoke cases, not a blind benchmark."""
 import argparse
+import base64
 import importlib.util
 import json
 import os
@@ -13,7 +14,6 @@ ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
 from cabin import CabinVehicle
 from agent_service import CabinTool
-from server_omni25_opt.native_backend import NativeBackend
 
 CASES=[
     ('rear','右后车窗打开一半',{}, {'rearRightWindow':50},None),
@@ -32,6 +32,8 @@ CASES=[
 def main():
     p=argparse.ArgumentParser()
     p.add_argument('--model',required=True)
+    p.add_argument('--backend', choices=['native', 'vllm'], default='native')
+    p.add_argument('--base-url', default='http://127.0.0.1:8118')
     p.add_argument('--baseline',type=Path)
     p.add_argument('--output',type=Path,required=True)
     args=p.parse_args();args.output.mkdir(parents=True,exist_ok=True)
@@ -41,10 +43,19 @@ def main():
         spec=importlib.util.spec_from_file_location('single_call_baseline',args.baseline)
         module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
         baseline=module.NativeBackend.run_turn
-    start=time.monotonic();backend=NativeBackend(args.model)
+    if args.backend == 'vllm':
+        from server_omni25_opt.vllm_backend import VllmBackend
+        backend_class = VllmBackend
+    else:
+        from server_omni25_opt.native_backend import NativeBackend
+        backend_class = NativeBackend
+    start=time.monotonic()
+    backend = backend_class('Qwen/Qwen2.5-Omni-3B', args.base_url) if args.backend == 'vllm' else backend_class(args.model)
     print('LOADED',round(time.monotonic()-start,3),flush=True)
     # Warm speech and decoder before timing either path.
-    backend.generate([{'role':'system','content':'你是语音助手。'},{'role':'user','content':'请说你好。'}],audio=True,force_text='你好。')
+    warm_messages = [{'role':'system','content':'你是语音助手。'},
+                     {'role':'user','content':'请严格原样说出下面的文字，不要添加内容：你好。'}]
+    backend.generate_speech(warm_messages, '你好。', None)
     collected=[]
     prompt=(ROOT/'small_model_eval/compact_prompt.txt').read_text()
     for index,(name,text,setup,expected_patch,fixture) in enumerate(CASES):
@@ -62,13 +73,20 @@ def main():
                 pcm=np.clip(np.rint(x*32768),-32768,32767).astype('<i2').tobytes()
             events=[];audit=[];state_at=[];backend.sessions={};backend.calls=0;backend.trace=[];backend.timings=[]
             backend.audit=lambda kind,data:audit.append({'kind':kind,**data})
-            backend.audio_sink=None;backend.text_sink=None
-            began=time.monotonic();error=None;result={}
+            backend.text_sink=None
+            began=time.monotonic();error=None;result={};audio_at=[];sequences=[];streamed_pcm=[]
+            def receive_audio(chunk):
+                audio_at.append(time.monotonic()-began)
+                sequences.append(chunk['sequence'])
+                streamed_pcm.append(base64.b64decode(chunk['pcm'],validate=True))
+            backend.audio_sink=receive_audio
             try:
                 callback=lambda *a,**k:state_at.append(time.monotonic()-began)
                 if mode=='new':result=backend.run_turn(name,CabinTool(vehicle,events),before,prompt,text=text,pcm=pcm,on_state=callback,request_id=f'{mode}-{name}')
                 else:result=baseline(backend,name,CabinTool(vehicle,events),before,prompt,text=text,pcm=pcm,on_state=callback)
             except Exception as exc:error=f'{type(exc).__name__}: {exc}'
+            if error is None and b''.join(streamed_pcm)!=result.get('pcm',b''):
+                error='streamed PCM differs from returned audio'
             duration=time.monotonic()-began
             correct=vehicle.state()==oracle.state() and bool(events)==bool(expected_patch) and all(e['result'].get('ok') for e in events)
             # Check explicitly supplied fields, not just final state. Extra
@@ -96,13 +114,18 @@ def main():
                  'state_correct':correct,'explicit_fields_correct':fields_ok,'protocol_ok':protocol_ok,
                  'reply_basic_check':reply_ok,'basic_case_pass':basic_pass,
                  'state_seconds':state_at[-1] if state_at else None,'complete_seconds':duration,
+                 'first_audio_seconds':audio_at[0] if audio_at else None,
+                 'audio_chunks':len(audio_at),'audio_sequences':sequences,
+                 'audio_seconds':len(result.get('pcm',b''))/2/24000,
                  'trace':backend.trace,'audit':audit}
             collected.append(row)
             with (args.output/'results.jsonl').open('a') as f:f.write(json.dumps(row,ensure_ascii=False)+'\n')
             if result.get('pcm'):
                 sf.write(args.output/f'{mode}-{name}-reply.wav',np.frombuffer(result['pcm'],dtype='<i2'),24000,subtype='PCM_16')
             print(json.dumps({k:row[k] for k in ['case','mode','error','state_correct','explicit_fields_correct','basic_case_pass','decision_status','state_seconds','complete_seconds']},ensure_ascii=False),flush=True)
-    summary={'model':args.model,'scope':'11 development inputs; same loaded BF16 model; alternating order; synthetic input audio; one run per case; no browser/acoustic latency test','modes':{}}
+    summary={'model':args.model,'backend':args.backend,
+             'scope':'11 development inputs; synthetic input audio; one run per case; no browser/acoustic latency test',
+             'execution_order':'alternating new/old' if args.baseline else 'single pass','modes':{}}
     for mode in ['old','new']:
         group=[r for r in collected if r['mode']==mode]
         if not group:continue
@@ -111,6 +134,11 @@ def main():
             'state_and_fields_correct':sum(r['state_correct'] and r['explicit_fields_correct'] for r in group),
             'median_state_seconds':float(np.median([r['state_seconds'] for r in group if r['state_seconds'] is not None])),
             'median_complete_seconds':float(np.median([r['complete_seconds'] for r in group]))}
+        group_summary=summary['modes'][mode]
+        first=[r['first_audio_seconds'] for r in group if r['first_audio_seconds'] is not None]
+        group_summary['median_first_audio_seconds']=float(np.median(first)) if first else None
+        group_summary['median_audio_seconds']=float(np.median([r['audio_seconds'] for r in group]))
+        group_summary['audio_chunks']=sum(r['audio_chunks'] for r in group)
     (args.output/'summary.json').write_text(json.dumps(summary,ensure_ascii=False,indent=2)+'\n')
     print('COMPLETE',json.dumps(summary,ensure_ascii=False),flush=True)
 
