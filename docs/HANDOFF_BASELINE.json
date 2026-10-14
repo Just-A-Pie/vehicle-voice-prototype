@@ -1,0 +1,31 @@
+{
+  "date": "2026-10-14",
+  "model": "Qwen2.5-Omni-3B",
+  "protocol": "cabin-single-decision-v1",
+  "source_git_commit": null,
+  "source_note": "Original project was untracked in a larger workspace. This repository is a curated source snapshot, not a claim of preserved prior Git history.",
+  "core_source_hashes": {
+    "single_call.py": "329a8e8c3d31a92687caf09a8a6fd2e41d20ac0e758f8eabf3f7bb81a1fdb69c",
+    "single_call_prompt.txt": "f3820d12390886f066103af7d8a2884ecf793f33bfb961eba0e7700e49739a83",
+    "cabin.py": "59037ac9f6b6980a7d98582173003eddaf230860c4e739095c6780aa7a6ba5fe",
+    "cabin_contract.json": "3fa29e931a4aacdf7a0dbf30bdc8737c08f4479316b176507b361882d6608b46",
+    "realtime_turn.py": "37abcb069e7f953c6281beab4e92e22c4e4e4239c524d72afb07ba568d871160",
+    "small_model_eval/backend.py": "0bd9a08d037187953a730b3ee7ec7712aef87cbc284abbda6ec0777cb0d8cac6",
+    "server_omni25_opt/native_backend.py": "5aad3664710dc290e7fddc1ee428090fa03004e9dd83fd4caf3e1603f59a96ba",
+    "server_omni25_opt/rope_fix.py": "529ba71a9b6eff54a91ac9670e9a3fe8f83e356021402a570931633a50ccfa3e"
+  },
+  "packaging_changes": [
+    "Explicit model path instead of personal mount defaults",
+    "Configurable SSH connection helper without private addresses/account paths",
+    "Regression fixture path is inside this repository",
+    "Documentation/requirements/evidence/third-party notices prepared for handoff"
+  ],
+  "validation": {
+    "python_tests_passed": 27,
+    "scripted_gold_rows_replayed": 216,
+    "frontend_scene_tests": "passed",
+    "python_compile": "passed",
+    "credential_and_personal_path_pattern_scan": "no findings in source snapshot",
+    "test_environment": "existing configured Python 3.12 runtime; inference dependency baseline is separately recorded"
+  }
+}

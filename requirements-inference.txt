@@ -1,0 +1,17 @@
+# Known GPU baseline; PyTorch CUDA wheel selection is environment-specific.
+# Install matching torch/torchaudio/torchvision for your CUDA environment first.
+torch==2.11.0
+torchaudio==2.11.0
+torchvision==0.26.0
+transformers==5.8.0
+accelerate==1.13.0
+numpy==1.26.4
+soundfile==0.13.1
+fastapi==0.136.1
+pydantic==2.11.10
+uvicorn==0.46.0
+httpx==0.28.1
+qwen-agent==0.0.34
+qwen-omni-utils==0.0.9
+websocket-client==1.9.2
+safetensors==0.8.0rc0

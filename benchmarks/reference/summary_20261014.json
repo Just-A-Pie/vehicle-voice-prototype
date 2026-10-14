@@ -1,0 +1,40 @@
+{
+  "note": "Derived from preserved 22-request development smoke. Parameter rejection is not a correct model output. Raw audit paths and audio outputs are excluded from this repository.",
+  "rows": 22,
+  "common_basic_pass_cases": [
+    "audio_negative",
+    "decimal",
+    "greeting",
+    "rear",
+    "unmute"
+  ],
+  "modes": {
+    "old": {
+      "requests": 11,
+      "completed": 10,
+      "basic_case_pass": 7,
+      "safe_state_and_fields": 7,
+      "protocol_rejections": 0,
+      "median_complete_s_completed_only": 3.3853267999365926,
+      "median_complete_s_common_pass": 2.7263322956860065,
+      "median_state_s_common_pass": 0.5980244129896164
+    },
+    "new": {
+      "requests": 11,
+      "completed": 11,
+      "basic_case_pass": 7,
+      "safe_state_and_fields": 8,
+      "protocol_rejections": 1,
+      "median_complete_s_completed_only": 4.227018376812339,
+      "median_complete_s_common_pass": 3.2305505760014057,
+      "median_state_s_common_pass": 1.0617190059274435
+    }
+  },
+  "limits": [
+    "11 development inputs, each once; not a held-out benchmark",
+    "8 text + 3 macOS synthetic speech inputs",
+    "First audio input was not warmed; new path ran first on that sample",
+    "Replies differ in length; no acoustic/browser measurement",
+    "Basic pass checks are not comprehensive reply semantic/human audio evaluation"
+  ]
+}

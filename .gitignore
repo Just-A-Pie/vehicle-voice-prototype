@@ -1,0 +1,22 @@
+/.venv*/
+/runtime/
+/evidence/
+/models/
+/recordings/
+/output/
+/dist/
+/vendor/
+**/__pycache__/
+*.py[cod]
+*.log
+.DS_Store
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+id_rsa*
+id_ed25519*
+node_modules/
+
+# web/slai/vendor and the small synthetic regression WAVs are intentional assets.

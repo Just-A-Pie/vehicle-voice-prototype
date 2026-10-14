@@ -1,0 +1,14 @@
+.assistant-status{gap:12px;flex-wrap:wrap}.assistant-status #voice-record{width:auto;min-width:64px;padding:10px 18px;border-radius:24px;background:#a4e7ff;color:#10212c;font-size:14px;font-weight:600}.assistant-status #voice-reconnect,.assistant-status #voice-replay{width:auto;padding:8px 12px;font-size:12px}.assistant-status button:disabled{opacity:.4;cursor:default}#voice-diagnostics{position:fixed;bottom:6px;right:18px;z-index:100;color:#94a9b8;font:11px monospace}#voice-diagnostics[open]{background:#101a24eF;border:1px solid #344957;border-radius:12px;padding:12px;max-width:80vw}#voice-log{max-height:45vh;overflow:auto;max-width:640px;white-space:pre-wrap;overflow-wrap:anywhere}
+
+.assistant-status .mic-off{display:none}
+@media(max-width:1100px){
+ .cockpit{--dock:188px}
+ footer{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:54px 48px 64px;gap:0;padding:8px 5% 14px}
+ footer .dock-climate{grid-column:1;grid-row:1}
+ footer .dock-music{grid-column:2;grid-row:1}
+ footer .dock-ambient{grid-column:1;grid-row:2;border:0;padding-left:0}
+ footer #vehicle-detail{position:static;grid-column:2;grid-row:2;justify-self:end;z-index:2}
+ footer .assistant-status{position:static;grid-column:1 / -1;grid-row:3;margin:0;border-left:0;border-top:1px solid #92bbd422;padding:8px 0 0;justify-content:flex-end;flex-wrap:nowrap;gap:10px;width:auto}
+ footer #voice-status{margin-right:auto;font-size:12px}
+ footer #voice-status small{display:block;font-size:10px;margin-top:4px;color:#8398a8}
+}

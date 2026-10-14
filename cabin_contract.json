@@ -1,0 +1,352 @@
+{
+  "parameters": {
+    "ac": {
+      "type": "boolean",
+      "label": "空调系统",
+      "default": false
+    },
+    "climateMode": {
+      "type": "string",
+      "label": "空调模式：auto自动、cool制冷、heat制热、fan通风",
+      "enum": [
+        "auto",
+        "cool",
+        "heat",
+        "fan"
+      ],
+      "default": "auto"
+    },
+    "temp": {
+      "type": "number",
+      "label": "设定温度",
+      "min": 16,
+      "max": 28,
+      "step": 0.5,
+      "default": 22,
+      "unit": "°C"
+    },
+    "fan": {
+      "type": "number",
+      "label": "风量",
+      "min": 1,
+      "max": 5,
+      "step": 1,
+      "default": 2,
+      "unit": "档"
+    },
+    "frontAir": {
+      "type": "boolean",
+      "label": "前排送风",
+      "default": true
+    },
+    "rearAir": {
+      "type": "boolean",
+      "label": "后排送风",
+      "default": true
+    },
+    "playing": {
+      "type": "boolean",
+      "label": "音乐",
+      "default": false
+    },
+    "volume": {
+      "type": "number",
+      "label": "音量",
+      "min": 0,
+      "max": 1,
+      "step": 0.01,
+      "default": 0.35,
+      "unit": "%"
+    },
+    "muted": {
+      "type": "boolean",
+      "label": "静音",
+      "default": false
+    },
+    "track": {
+      "type": "number",
+      "label": "曲目",
+      "min": 0,
+      "max": 5,
+      "step": 1,
+      "default": 0,
+      "unit": ""
+    },
+    "ambient": {
+      "type": "boolean",
+      "label": "氛围灯",
+      "default": true
+    },
+    "ambientColor": {
+      "type": "string",
+      "label": "氛围灯颜色",
+      "enum": [
+        "blue",
+        "violet",
+        "amber"
+      ],
+      "default": "blue"
+    },
+    "ambientBrightness": {
+      "type": "number",
+      "label": "氛围灯亮度",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "default": 70,
+      "unit": "%"
+    },
+    "lights": {
+      "type": "boolean",
+      "label": "迎宾灯",
+      "default": true
+    },
+    "locked": {
+      "type": "boolean",
+      "label": "车锁",
+      "default": true
+    },
+    "leftDoor": {
+      "type": "number",
+      "label": "主驾车门开度",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "default": 0,
+      "unit": "%"
+    },
+    "rightDoor": {
+      "type": "number",
+      "label": "副驾车门开度",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "default": 0,
+      "unit": "%"
+    },
+    "rearLeftDoor": {
+      "type": "number",
+      "label": "左后车门开度",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "default": 0,
+      "unit": "%"
+    },
+    "rearRightDoor": {
+      "type": "number",
+      "label": "右后车门开度",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "default": 0,
+      "unit": "%"
+    },
+    "leftWindow": {
+      "type": "number",
+      "label": "主驾车窗开度",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "default": 0,
+      "unit": "%"
+    },
+    "rightWindow": {
+      "type": "number",
+      "label": "副驾车窗开度",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "default": 0,
+      "unit": "%"
+    },
+    "rearLeftWindow": {
+      "type": "number",
+      "label": "左后车窗开度",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "default": 0,
+      "unit": "%"
+    },
+    "rearRightWindow": {
+      "type": "number",
+      "label": "右后车窗开度",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "default": 0,
+      "unit": "%"
+    }
+  },
+  "controlSchema": {
+    "type": "object",
+    "properties": {
+      "ac": {
+        "type": "boolean",
+        "description": "空调系统"
+      },
+      "climateMode": {
+        "type": "string",
+        "description": "空调模式：auto自动、cool制冷、heat制热、fan通风",
+        "enum": [
+          "auto",
+          "cool",
+          "heat",
+          "fan"
+        ]
+      },
+      "temp": {
+        "type": "number",
+        "description": "设定温度",
+        "minimum": 16,
+        "maximum": 28,
+        "multipleOf": 0.5
+      },
+      "fan": {
+        "type": "number",
+        "description": "风量",
+        "minimum": 1,
+        "maximum": 5,
+        "multipleOf": 1
+      },
+      "frontAir": {
+        "type": "boolean",
+        "description": "前排送风"
+      },
+      "rearAir": {
+        "type": "boolean",
+        "description": "后排送风"
+      },
+      "playing": {
+        "type": "boolean",
+        "description": "音乐"
+      },
+      "volume": {
+        "type": "number",
+        "description": "音量，0–1 对应 0–100%",
+        "minimum": 0,
+        "maximum": 1,
+        "multipleOf": 0.01
+      },
+      "muted": {
+        "type": "boolean",
+        "description": "静音"
+      },
+      "track": {
+        "type": "number",
+        "description": "曲目",
+        "minimum": 0,
+        "maximum": 5,
+        "multipleOf": 1
+      },
+      "ambient": {
+        "type": "boolean",
+        "description": "氛围灯"
+      },
+      "ambientColor": {
+        "type": "string",
+        "description": "氛围灯颜色",
+        "enum": [
+          "blue",
+          "violet",
+          "amber"
+        ]
+      },
+      "ambientBrightness": {
+        "type": "number",
+        "description": "氛围灯亮度",
+        "minimum": 0,
+        "maximum": 100,
+        "multipleOf": 1
+      },
+      "lights": {
+        "type": "boolean",
+        "description": "迎宾灯"
+      },
+      "locked": {
+        "type": "boolean",
+        "description": "车锁"
+      },
+      "leftDoor": {
+        "type": "number",
+        "description": "主驾车门开度，0=关闭，100=全开",
+        "minimum": 0,
+        "maximum": 100,
+        "multipleOf": 1
+      },
+      "rightDoor": {
+        "type": "number",
+        "description": "副驾车门开度，0=关闭，100=全开",
+        "minimum": 0,
+        "maximum": 100,
+        "multipleOf": 1
+      },
+      "rearLeftDoor": {
+        "type": "number",
+        "description": "左后车门开度，0=关闭，100=全开",
+        "minimum": 0,
+        "maximum": 100,
+        "multipleOf": 1
+      },
+      "rearRightDoor": {
+        "type": "number",
+        "description": "右后车门开度，0=关闭，100=全开",
+        "minimum": 0,
+        "maximum": 100,
+        "multipleOf": 1
+      },
+      "leftWindow": {
+        "type": "number",
+        "description": "主驾车窗开度，0=关闭，100=全开",
+        "minimum": 0,
+        "maximum": 100,
+        "multipleOf": 1
+      },
+      "rightWindow": {
+        "type": "number",
+        "description": "副驾车窗开度，0=关闭，100=全开",
+        "minimum": 0,
+        "maximum": 100,
+        "multipleOf": 1
+      },
+      "rearLeftWindow": {
+        "type": "number",
+        "description": "左后车窗开度，0=关闭，100=全开",
+        "minimum": 0,
+        "maximum": 100,
+        "multipleOf": 1
+      },
+      "rearRightWindow": {
+        "type": "number",
+        "description": "右后车窗开度，0=关闭，100=全开",
+        "minimum": 0,
+        "maximum": 100,
+        "multipleOf": 1
+      },
+      "windows": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 100,
+        "multipleOf": 1,
+        "description": "全部车窗开度，0–100；单独字段优先"
+      },
+      "doors": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 100,
+        "multipleOf": 1,
+        "description": "全部车门开度，0–100；单独字段优先"
+      }
+    },
+    "additionalProperties": false
+  },
+  "trackNames": [
+    "Nightfall",
+    "Blue Horizon",
+    "Weightless",
+    "晨光",
+    "河畔",
+    "星夜"
+  ]
+}

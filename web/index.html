@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#11171d">
+  <title>深圳河套学院 · 智能座舱</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body data-phase="offline" class="state-unknown">
+  <header>
+    <div class="brand"><svg class="icon" aria-hidden="true"><use href="car.svg#p-car"></use></svg><strong>座舱</strong><span>深圳河套学院</span></div>
+    <div class="connection"><span id="dot"></span><span id="connection" role="status">语音连接中</span><time id="clock"></time></div>
+  </header>
+  <main>
+    <div id="connection-notice" class="connection-notice" role="status"><span id="connection-help">正在连接语音服务</span><button id="reconnect" class="text-button" type="button">重试连接</button></div>
+    <section class="vehicle" aria-labelledby="cabin-title">
+      <div class="section-head"><h1 id="cabin-title">车辆状态</h1><span id="state-freshness">等待同步</span></div>
+      <div class="car-view"><div class="car-halo" aria-hidden="true"></div><img src="car.svg" alt="车辆俯视图"><span class="seat left">主驾</span><span class="seat right">副驾</span></div>
+      <div class="vehicle-summary"><svg class="icon" aria-hidden="true"><use href="car.svg#p-fan"></use></svg><span id="air-label">等待连接</span></div>
+    </section>
+    <section class="controls" aria-label="座舱状态">
+      <article class="climate" id="climate-card"><div class="panel-head"><h2><svg class="icon" aria-hidden="true"><use href="car.svg#p-fan"></use></svg>空调</h2><span id="ac" class="pill">待同步</span></div><div class="temperature"><span>设定温度</span><strong id="temperature">—<sup>°</sup></strong></div><div class="track" aria-hidden="true"><i id="temp-progress"></i></div><div class="range"><span>16°</span><span>30°</span></div><div class="panel-foot"><span id="ac-note">等待连接</span><span>℃</span></div></article>
+      <div class="small-panels"><article id="volume-card"><div class="panel-head"><h2>媒体音量</h2><svg class="icon" aria-hidden="true"><use href="car.svg#p-volume"></use></svg></div><strong class="metric"><span id="volume">—</span><small>%</small></strong><div class="track" aria-hidden="true"><i id="volume-progress"></i></div><p>媒体</p></article><article id="window-card"><div class="panel-head"><h2>车窗开度</h2><svg class="icon" aria-hidden="true"><use href="car.svg#p-window"></use></svg></div><strong class="metric"><span id="window">—</span><small>%</small></strong><div class="track" aria-hidden="true"><i id="window-progress"></i></div><p id="window-note">待同步</p></article></div>
+    </section>
+    <section class="interaction" aria-label="语音助手">
+      <div class="voice-orb" id="orb" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+      <div class="voice-copy" role="status" aria-live="polite"><span id="phase">语音连接中</span><p id="reply"></p><span id="interaction-hint">点击麦克风开始说话</span></div>
+      <span id="timer" aria-label="录音时长"></span>
+      <div class="voice-actions"><button id="record" type="button" disabled aria-label="开始语音输入"><svg class="icon" aria-hidden="true"><use href="car.svg#p-mic"></use></svg><span id="record-label">语音</span></button><button id="stop-playback" class="secondary" type="button" hidden>停止播报</button><button id="replay" class="secondary" type="button" hidden>重播</button></div>
+    </section>
+  </main>
+  <section id="engineering" hidden aria-label="工程调试">
+    <div class="engineering-heading"><h2>工程调试</h2><span>仅供现场调试 · 主屏不显示</span></div>
+    <div class="input-area"><form id="text-form"><label for="text" class="sr-only">文字调试输入</label><input id="text" maxlength="300" placeholder="输入测试指令" autocomplete="off"><button type="submit" disabled>发送</button></form><div class="examples"><button type="button" data-prompt="把空调设为22度">空调设为22度</button><button type="button" data-prompt="把车窗打开一半">车窗打开一半</button><button type="button" data-prompt="你好，介绍一下自己">问候</button></div></div>
+    <div class="conversation"><h2>最近请求 <span id="turn-count">0</span></h2><div id="history-empty">等待请求</div><ol id="history"></ol></div>
+    <div class="status-row"><span id="latency">等待第一轮请求</span><span id="wait-time"></span><button id="reset" class="text-button" type="button" disabled>恢复初始状态</button><button id="toggle-details" class="text-button" type="button" aria-expanded="false" aria-controls="details">联调详情 ↓</button></div>
+    <div id="details" hidden><h2>本轮执行记录</h2><pre id="log" tabindex="0">等待第一轮请求</pre><p>车辆状态为模拟状态，不连接实体车辆。语音理解与原生播报由 Qwen3-Omni 提供。录音临时处理后删除，服务端日志保留转写、模型过程、工具参数、状态与耗时。</p></div>
+  </section>
+  <audio id="audio"></audio>
+  <script src="stream-player.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

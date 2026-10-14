@@ -1,0 +1,57 @@
+/* Spatial hierarchy: climate instruments / vehicle stage / control shelf. */
+:root{--climate:#b8d9dc;--climate-soft:#b8d9dc14;--muted:#91a3b0;--line:#b8cddd1c}
+:root[data-climate-mode=heat]{--climate:#efba88;--climate-soft:#efba8814}
+:root[data-climate-mode=cool]{--climate:#8cdbf3;--climate-soft:#8cdbf314}
+:root[data-climate-mode=fan]{--climate:#c2d1ca;--climate-soft:#c2d1ca14}
+.cockpit{--dock:144px;min-height:680px;background:#080d14}
+header{height:76px;padding:0 3.5%;border-color:#bdcfe010}
+.wordmark{font-size:23px;letter-spacing:7px}.wordmark span{font-size:11px;letter-spacing:2px}
+.parked{font-size:11px;letter-spacing:.5px;gap:10px}.parked b{font-size:16px}.status{gap:18px;font-size:13px}
+.hero{left:4.2%;top:calc(76px + 5vh);width:250px;max-width:27%;padding:0;}
+.eyebrow{font-size:9px;letter-spacing:3px;color:#78909f}.hero h1{font-size:22px;font-weight:400;letter-spacing:2px;margin:10px 0 16px}
+#climate-mode-label{font-size:12px;letter-spacing:1px;color:var(--climate);margin:0;display:flex;align-items:center;gap:8px;transition:color .4s}
+#climate-mode-label:before{content:'';width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.8}
+[data-ac=false] #climate-mode-label{color:#8396a3}
+.hero-value{min-height:0;height:118px;gap:8px;margin-top:10px;color:#9daeb8}
+.hero-value strong{font-size:116px;letter-spacing:-2px;font-weight:300}
+.hero-value>span{font-size:19px;margin-top:20px;color:#9bb0bd}
+[data-ac=true] .hero-value{color:#ecf3f6;text-shadow:none}
+#temp-change{position:absolute;top:170px;left:137px;font-size:11px;color:var(--climate);white-space:nowrap}
+.hero>p{font-size:11px;letter-spacing:1px;margin:9px 0 20px;color:#8094a2}
+.hero-modes{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;border:1px solid var(--line);padding:4px;border-radius:15px;background:#14212b70;backdrop-filter:blur(16px)}
+.hero-modes button{display:flex;flex-direction:column;align-items:center;gap:7px;border-radius:10px;padding:10px 1px;color:#8296a4;font-size:10px;transition:color .3s,background .3s}
+.hero-modes svg{width:21px;height:21px;stroke-width:1.4}
+.hero-modes button[aria-pressed=true]{background:var(--climate-soft);color:var(--climate);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--climate),transparent 80%)}
+.climate-details{max-width:none;margin-top:17px;padding-top:0;border:0}
+.climate-summary{margin-bottom:17px;gap:10px!important}.fan-symbol{display:flex;color:var(--climate)!important}.fan-symbol svg{width:20px;height:20px}
+.fan-steps{display:flex;align-items:center;gap:4px;flex:1}.fan-steps button{height:32px;flex:1;padding:4px;display:flex;align-items:center;justify-content:center}.fan-steps i{display:block;width:5px;height:var(--bar);border-radius:3px;background:#35434d;transition:background .35s,box-shadow .35s}.fan-steps [data-lit=true] i{background:var(--climate);box-shadow:0 0 12px var(--climate-soft)}
+.climate-summary #climate-power-state{font-size:10px;color:#8ca1af;white-space:nowrap}.climate-zones{gap:16px!important}
+.climate-zones>div,[data-ac=true] .climate-zones>div{gap:8px;padding-bottom:12px}.climate-zones span{font-size:10px;letter-spacing:1px}.climate-zones b,[data-ac=true] .climate-zones b{font-size:12px;letter-spacing:0}.climate-zones>div[data-active=true] b{color:var(--climate)}.climate-zones>div[data-active=true]:after{background:linear-gradient(90deg,var(--climate),transparent);box-shadow:none;opacity:.5}
+.hero-meter{display:none!important}.sr-only{position:absolute!important;width:1px!important;height:1px!important;overflow:hidden!important;clip-path:inset(50%);white-space:nowrap}
+footer{height:var(--dock);padding:0 3.5%;display:grid;grid-template-columns:1.1fr 1fr 1fr 48px;grid-template-rows:76px 68px;gap:0 24px;background:linear-gradient(180deg,#121c25eb,#0b121beF);border-top:1px solid #c6d9e320;backdrop-filter:blur(26px)}
+footer .dock-climate{grid-column:1;grid-row:1;gap:10px}footer .dock-music{grid-column:2;grid-row:1;gap:12px}footer .dock-ambient{grid-column:3;grid-row:1}footer #vehicle-detail{grid-column:4;grid-row:1;margin:0;justify-self:end;padding:10px}
+footer>div+div,footer>.dock-ambient{border:0;padding-left:20px;border-left:1px solid var(--line)}
+footer .assistant-status{grid-column:1/-1;grid-row:2;display:flex;justify-content:center;align-items:center;gap:12px!important;flex-wrap:nowrap;border-left:0;border-top:1px solid var(--line);padding:0!important;width:100%;margin:0}
+footer #voice-status{margin-right:auto;display:block!important;font-size:12px;color:#bfd0d9}footer #voice-status small{display:block;font-size:9px;color:#748996;letter-spacing:.3px;margin-top:5px}
+.assistant-status #voice-record{min-width:116px;height:42px;min-height:42px;padding:0 25px;border-radius:24px;background:#d5e6eb;color:#182830;box-shadow:0 3px 20px #0003;font-weight:500;letter-spacing:2px}
+#voice-reconnect,#voice-replay{color:#93aab8}#command-open{color:#adc2ce}.dock-climate>div>span{font-size:10px}.dock-climate b{font-size:11px}#dock-setpoint{font-size:28px}.dock-ambient{font-size:12px}.dock-ambient small{font-size:10px}#music-detail span{font-size:12px}#music-detail small{font-size:10px}.ambient-orb{width:10px;height:10px}#ac-power[aria-pressed=true]{color:var(--climate);filter:none}
+.suggestion-line{bottom:calc(var(--dock) + 16px);left:auto;right:4%;transform:none;max-width:62%;gap:8px;background:#0c172070;border:1px solid #b0c7d011;padding:2px 8px 2px 14px;border-radius:30px;backdrop-filter:blur(12px)}.suggest-label{font-size:10px}.suggestion-line button{font-size:12px;letter-spacing:0}.suggestion-line button small{display:none}.suggestion-line #next-suggestion{font-size:18px}
+.feedback{bottom:calc(var(--dock) + 70px);border-radius:18px;max-width:60%;left:auto;right:4%;transform:translateY(10px);padding:14px 20px}.feedback.visible{transform:translateY(0)}.feedback p{font-size:14px;line-height:1.6}.feedback small{font-size:10px}.feedback>#result-state{font-size:10px}.feedback:has(.window-feedback:not([hidden])){max-width:360px}
+dialog{border-radius:24px;padding:28px;max-height:85svh;overflow:auto}.mode-picker button[aria-pressed=true]{background:var(--climate-soft);border-color:var(--climate);color:var(--climate)}.temperature-picker button{color:var(--climate)}.zone-switches button[aria-pressed=true]{border-color:color-mix(in srgb,var(--climate),transparent 60%)}.zone-switches button[aria-pressed=true] span{color:var(--climate)}
+#voice-diagnostics{bottom:2px;right:8px;font-size:9px;opacity:.6}#voice-diagnostics[open]{opacity:1}
+@media(min-width:1400px){.hero{width:285px;top:20%}.hero-value{height:144px}.hero-value strong{font-size:142px}.hero h1{font-size:25px}.hero-modes button{padding:12px 2px;font-size:11px}#temp-change{top:190px;left:165px}footer{grid-template-columns:1fr 1fr 1fr 60px;padding:0 5%}}
+@media(max-width:900px){.cockpit{--dock:144px;min-height:680px}.hero{left:5%;top:105px;width:200px;max-width:30%}.hero h1{font-size:19px;margin:9px 0 14px}.hero-value{height:96px}.hero-value strong{font-size:96px}.hero-value>span{font-size:16px;margin-top:17px}#temp-change{left:115px;top:147px;font-size:10px}.hero>p{margin:7px 0 16px}.hero-modes button{font-size:9px;padding:9px 0}.hero-modes svg{width:19px;height:19px}.climate-details{margin-top:12px}.climate-summary{gap:6px!important;margin-bottom:12px}.climate-zones{gap:12px!important}.climate-zones span{font-size:10px}.climate-zones b{font-size:11px}footer{gap:0 10px;grid-template-columns:1.1fr 1fr .9fr 36px}footer>div+div,footer>.dock-ambient{padding-left:12px}.dock-climate>div{display:none}.dock-music #next-track{display:none}.dock-ambient small{display:block;margin-left:0;font-size:9px}.dock-ambient{gap:8px}.suggestion-line{max-width:60%;right:4%}.parked{font-size:10px}.parked i,.parked>span:last-child{display:none}.wordmark span{font-size:10px;padding-left:12px}.status{gap:10px}}
+@media(max-width:560px){.cockpit{min-height:740px;--dock:158px}header{height:66px;padding:0 5%}.wordmark{font-size:20px}.wordmark span{display:none}.status button{display:block}.hero{top:90px;left:6%;width:180px;max-width:47%}.hero h1{font-size:18px}.hero-value{height:85px}.hero-value strong{font-size:86px}.hero>p{font-size:10px}.climate-zones{display:none!important}.climate-summary{margin:0}#temp-change{top:139px;left:103px}.suggestion-line{max-width:90%;width:auto;right:5%;bottom:calc(var(--dock) + 14px)}.suggest-label{display:none}.feedback{max-width:90%;right:5%;bottom:calc(var(--dock) + 67px)}footer{grid-template-columns:1fr 1fr 36px;grid-template-rows:76px 82px;padding:0 5%;gap:0 12px}.dock-ambient{display:none!important}footer #vehicle-detail{grid-column:3}.dock-climate{gap:4px!important}footer .dock-music{padding-left:12px}#music-detail{min-width:0}.assistant-status #voice-record{min-width:82px;padding:0 15px}footer #voice-status{font-size:10px}footer #voice-status small{max-width:120px;font-size:8px}.assistant-status #voice-reconnect,.assistant-status #voice-replay{padding:6px;font-size:10px}footer .assistant-status{gap:4px!important}.remote-panel{top:76px}}
+@media(max-height:740px) and (min-width:901px){.hero{top:98px}.hero-value{height:92px}.hero-value strong{font-size:92px}.hero h1{margin:8px 0 10px;font-size:20px}.hero>p{margin:6px 0 12px}.hero-modes button{padding:7px 0}.climate-details{margin-top:10px}.climate-summary{margin-bottom:10px}#temp-change{top:135px;left:115px}}
+
+/* Keep the confirmation separate from spoken captions, with stable reserved space. */
+.feedback{width:min(430px,60vw);display:grid;grid-template-columns:22px minmax(0,1fr) 48px;gap:12px;align-items:start}
+.feedback>div:not(.window-feedback){min-width:0;display:grid;grid-template-rows:16px 18px 66px;gap:4px}
+.feedback #command-echo{display:block!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:0;line-height:16px}
+.feedback #command-echo[hidden]{visibility:hidden}
+.feedback #action-confirmation{margin:0;font-size:10px;color:#9db6c2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:18px}
+.feedback #response{height:66px;overflow:auto;line-height:22px;overflow-wrap:anywhere;scrollbar-width:thin}
+.feedback #result-state{padding-left:8px;align-self:center}
+.feedback .window-feedback{grid-column:1/-1}
+.feedback:has(.window-feedback:not([hidden])){width:min(430px,60vw);max-width:60vw}
+@media(max-width:560px){.feedback,.feedback:has(.window-feedback:not([hidden])){width:90vw;max-width:90vw;grid-template-columns:20px minmax(0,1fr);}.feedback #result-state{display:none}}

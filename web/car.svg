@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 540"><defs>
+<linearGradient id="ui-bg" x2="1" y2="1"><stop stop-color="#1d282e"/><stop offset="1" stop-color="#111a21"/></linearGradient>
+<linearGradient id="car-paint" x1="0" x2="1"><stop stop-color="#8d999d"/><stop offset=".13" stop-color="#c6d0d0"/><stop offset=".4" stop-color="#f2f5f1"/><stop offset=".74" stop-color="#dbe1df"/><stop offset="1" stop-color="#8e9b9e"/></linearGradient>
+<linearGradient id="car-glass" x2="1" y2="1"><stop stop-color="#536a71"/><stop offset=".45" stop-color="#263b43"/><stop offset="1" stop-color="#101f27"/></linearGradient>
+<linearGradient id="air-glow" x2="0" y2="1"><stop stop-color="#4ba89c" stop-opacity=".38"/><stop offset="1" stop-color="#4ba89c" stop-opacity="0"/></linearGradient>
+<filter id="car-shadow" x="-60%" y="-30%" width="220%" height="180%"><feDropShadow dx="10" dy="22" stdDeviation="18" flood-color="#35464b" flood-opacity=".24"/></filter>
+<filter id="card-shadow" x="-20%" y="-30%" width="140%" height="170%"><feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#253e40" flood-opacity=".08"/></filter>
+<symbol id="p-mic" viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8"/></symbol>
+<symbol id="p-car" viewBox="0 0 24 24"><path d="m4 9 2-5h12l2 5 1 3v7H3v-7ZM4 10h16M6 14h2m8 0h2M6 19v2m12-2v2"/></symbol>
+<symbol id="p-volume" viewBox="0 0 24 24"><path d="M3 9h4l5-4v14l-5-4H3ZM16 8q5 4 0 8M19 4q9 8 0 16"/></symbol>
+<symbol id="p-window" viewBox="0 0 24 24"><path d="M3 20V8l5-4h13v16ZM4 12h16"/></symbol>
+<symbol id="p-power" viewBox="0 0 24 24"><path d="M12 2v10M7 5a9 9 0 1 0 10 0"/></symbol>
+<symbol id="p-fan" viewBox="0 0 24 24"><circle cx="12" cy="12" r="2"/><path d="M11 9C1 7 9-5 13 5l-1 4M15 11c2-10 14-2 4 2l-4-1M13 15c10 2 2 14-2 4l1-4M9 13C7 23-5 15 5 11l4 1"/></symbol>
+</defs>
+<g transform="translate(180 270) rotate(-18)">
+<g filter="url(#car-shadow)">
+<rect x="-114" y="-133" width="24" height="79" rx="8" fill="#283337"/><rect x="90" y="-133" width="24" height="79" rx="8" fill="#283337"/>
+<rect x="-114" y="111" width="24" height="76" rx="8" fill="#283337"/><rect x="90" y="111" width="24" height="76" rx="8" fill="#283337"/>
+<path d="M-88-198Q-76-230 0-234Q76-230 88-198L107-100 104 155Q99 204 79 224Q0 246-79 224Q-99 204-104 155L-107-100Z" fill="url(#car-paint)" stroke="#919fa2" stroke-width="1.5"/>
+<path d="M-86-187Q0-208 86-187" fill="none" stroke="#f5fffb" stroke-width="5"/><path d="M-73-169Q0-185 73-169L85-112Q0-132-85-112Z" fill="#b9c7c8" opacity=".48"/>
+<path d="M-85-105Q0-142 85-105L89 146Q75 185 0 190Q-75 185-89 146Z" fill="url(#car-glass)" stroke="#849599" stroke-width="2"/>
+<path d="M-82-103Q0-131 82-103L73-33Q0-53-73-33Z" fill="#72878c" opacity=".65"/>
+<path d="M-89-38l12 165M89-38 77 127" stroke="#d0dedc" stroke-width="4"/>
+<!-- two seats visible under conceptual glass -->
+<g fill="#abb9b7" stroke="#d6dfdb" stroke-width="1.4">
+<rect x="-68" y="-1" width="56" height="82" rx="16"/><rect x="12" y="-1" width="56" height="82" rx="16"/>
+<rect x="-62" y="-15" width="44" height="24" rx="8"/><rect x="18" y="-15" width="44" height="24" rx="8"/>
+<path d="M-61 72v29q23 10 43 0V72M18 72v29q23 10 43 0V72"/>
+</g>
+<rect x="-7" y="-23" width="14" height="134" rx="5" fill="#607877"/>
+<circle cx="-42" cy="-47" r="17" fill="none" stroke="#c4d0cc" stroke-width="4"/>
+
+<path d="M-75 133Q0 150 75 133L64 171Q0 195-64 171Z" fill="#152d35"/>
+<path d="M-90 207Q0 224 90 207" fill="none" stroke="#9f7372" stroke-width="4"/>
+<path d="M-100-56l-24-8q-7 0-5 12l26 13M100-56l24-8q7 0 5 12l-26 13" fill="#b3c3c2" stroke="#91a3a3"/>
+<path d="M-94-20v134M94-20v134" stroke="#93a4a5" fill="none"/>
+</g></g>
+</svg>
