@@ -1,0 +1,518 @@
+diff --git a/third_party/vllm-omni/vllm_omni/config/model.py b/third_party/vllm-omni/vllm_omni/config/model.py
+index a5f1376..ea8e0ad 100644
+--- a/third_party/vllm-omni/vllm_omni/config/model.py
++++ b/third_party/vllm-omni/vllm_omni/config/model.py
+@@ -171,6 +171,14 @@ class OmniModelConfig(ModelConfig):
+                 return override
+         return super().embedding_size
+ 
++    def get_inputs_embeds_size(self) -> int:
++        if self.hf_config_name is not None:
++            stage_config = getattr(self.hf_config, self.hf_config_name, None)
++            size = getattr(stage_config, "embedding_size", None)
++            if size is not None:
++                return int(size)
++        return super().get_inputs_embeds_size()
++
+     def get_model_arch_config(self):
+         # For multi-stage omni models, use a stage-aware convertor so that
+         # only the correct stage's quantization config is surfaced.
+diff --git a/third_party/vllm-omni/vllm_omni/core/sched/omni_scheduling_coordinator.py b/third_party/vllm-omni/vllm_omni/core/sched/omni_scheduling_coordinator.py
+index af6c73d..8054ce5 100644
+--- a/third_party/vllm-omni/vllm_omni/core/sched/omni_scheduling_coordinator.py
++++ b/third_party/vllm-omni/vllm_omni/core/sched/omni_scheduling_coordinator.py
+@@ -42,6 +42,8 @@ _FULL_PAYLOAD_INPUT_STAGES: frozenset[tuple[str, str]] = frozenset(
+         # stages of qwen2_5_omni are enabled.
+         ("Qwen2_5OmniForConditionalGeneration", "talker"),
+         ("Qwen2_5OmniForConditionalGeneration", "code2wav"),
++        ("DenseEncoderAudioLLMSpeechForConditionalGeneration", "talker"),
++        ("DenseEncoderAudioLLMSpeechForConditionalGeneration", "code2wav"),
+         # covo_audio: fused_thinker_talker (Stage 0) -> code2wav (Stage 1).
+         ("CovoAudioForConditionalGeneration", "code2wav"),
+         # mimo_audio: fused_thinker_talker (Stage 0) -> code2wav (Stage 1).
+diff --git a/third_party/vllm-omni/vllm_omni/engine/orchestrator.py b/third_party/vllm-omni/vllm_omni/engine/orchestrator.py
+index bdd678f..9735757 100644
+--- a/third_party/vllm-omni/vllm_omni/engine/orchestrator.py
++++ b/third_party/vllm-omni/vllm_omni/engine/orchestrator.py
+@@ -1503,10 +1503,19 @@ class Orchestrator:
+ 
+                 from vllm_omni.distributed.omni_connectors.adapter import compute_talker_prompt_ids_length
+ 
+-                try:
+-                    next_prompt_len = max(1, compute_talker_prompt_ids_length(prompt_token_ids))
+-                except Exception:
+-                    next_prompt_len = max(1, len(prompt_token_ids))
++                model_config = next_pool.stage_vllm_config.model_config
++                if (
++                    next_stage_id == 1
++                    and model_config.model_arch
++                    in ("Qwen2_5OmniForConditionalGeneration", "DenseEncoderAudioLLMSpeechForConditionalGeneration")
++                    and model_config.model_stage == "talker"
++                ):
++                    next_prompt_len = len(prompt_token_ids) + 2
++                else:
++                    try:
++                        next_prompt_len = max(1, compute_talker_prompt_ids_length(prompt_token_ids))
++                    except Exception:
++                        next_prompt_len = max(1, len(prompt_token_ids))
+ 
+                 original_prompt = req_state.prompt
+                 if isinstance(original_prompt, dict):
+diff --git a/third_party/vllm-omni/vllm_omni/model_executor/models/qwen2_5_omni/qwen2_5_omni.py b/third_party/vllm-omni/vllm_omni/model_executor/models/qwen2_5_omni/qwen2_5_omni.py
+index 7b2c255..28c3272 100644
+--- a/third_party/vllm-omni/vllm_omni/model_executor/models/qwen2_5_omni/qwen2_5_omni.py
++++ b/third_party/vllm-omni/vllm_omni/model_executor/models/qwen2_5_omni/qwen2_5_omni.py
+@@ -140,6 +140,7 @@ class Qwen2_5OmniForConditionalGeneration(
+             # voice resources (loaded on demand)
+             self._token2wav_conds: dict[str, torch.Tensor] = {}
+             self._token2wav_ref_mels: dict[str, torch.Tensor] = {}
++            self._stream_audio_states: dict[str, dict] = {}
+             self.model = self.token2wav
+             self.requires_raw_input_tokens = True
+         else:
+@@ -345,7 +346,7 @@ class Qwen2_5OmniForConditionalGeneration(
+                     inputs_embeds=inputs_embeds,
+                 )
+ 
+-            if sampling_metadata is not None:
++            if sampling_metadata is not None and sampling_metadata.prompt_token_ids is not None:
+                 # the padding token id is set to text model's pad token id,
+                 # which do not match with the talker model's word embedding size
+                 sampling_metadata.prompt_token_ids[sampling_metadata.prompt_token_ids == 152064] = 8448
+@@ -356,6 +357,26 @@ class Qwen2_5OmniForConditionalGeneration(
+             )
+ 
+         if self.model_stage == "code2wav":
++            runtime_infos = kwargs.get("runtime_additional_information") or []
++            if self.vllm_config.model_config.async_chunk and len(runtime_infos) == 1:
++                info = runtime_infos[0]
++                meta = info.get("meta", {}) if isinstance(info, dict) else {}
++                request_id = info.get("request_id") if isinstance(info, dict) else None
++                if request_id is not None:
++                    codes = info.get("codes", {}).get("audio", [])
++                    finished = meta.get("stream_finished", False)
++                    if isinstance(finished, torch.Tensor):
++                        finished = bool(finished.item())
++                    audio_tensor = self._codec_to_audio_stream_chunk(
++                        request_id=str(request_id),
++                        codec_tokens=codes,
++                        finished=bool(finished),
++                        voice_type=voice_type,
++                    )
++                    return OmniOutput(
++                        text_hidden_states=None,
++                        multimodal_outputs={"model_outputs": [audio_tensor]},
++                    )
+             code = (
+                 input_ids
+                 if input_ids is not None
+@@ -962,59 +983,179 @@ class Qwen2_5OmniForConditionalGeneration(
+         else:
+             codec = torch.as_tensor(codec_tokens, dtype=torch.long, device=token2wav_dev).unsqueeze(0)
+ 
+-        # Streaming with chunked process and boundary alignment
+-        # (rely on token2wav.process_chunk)
+-        factor = getattr(self.token2wav.token2wav.factor, "factor", 2)
+-        chunk_size = 48
+-        mel_dim = getattr(
+-            self.token2wav.token2wav.code2wav_dit_model,
+-            "mel_dim",
+-            self.token2wav_config.dit_config.mel_dim,
+-        )
++        if os.environ.get("QWEN25_OMNI_CHUNKED_AUDIO") != "1":
++            return self.token2wav(
++                code=codec,
++                conditioning=cond,
++                reference_mel=ref_mel,
++                num_steps=10,
++            ).reshape(-1)
++
++        decoder = self.token2wav.token2wav
++        decoder.batched_chunk = int(os.environ.get("QWEN25_OMNI_MEL_CHUNK_BLOCKS", 12))
++        if decoder.batched_chunk <= 0:
++            raise ValueError("QWEN25_OMNI_MEL_CHUNK_BLOCKS must be positive")
++        decoder.chunk_size = decoder.bs_mel * decoder.batched_chunk
++        factor = decoder.factor
+         total_mel = int(codec.shape[1] * factor)
+         steps = 10
++        y_all = torch.randn(
++            (1, total_mel, decoder.code2wav_dit_model.mel_dim),
++            dtype=ref_mel.dtype,
++            device=token2wav_dev,
++        )
++        prev_mel = None
++        wav_chunks: list[torch.Tensor] = []
+ 
+-        # Prepare initial noise for the whole sequence
+-        y_all = torch.randn((1, total_mel, mel_dim), dtype=ref_mel.dtype, device=token2wav_dev)
++        with torch.inference_mode():
++            chunk_index = 0
++            while total_mel >= (chunk_index + 1) * decoder.chunk_size + decoder.future_cache_size:
++                prev_mel, audio_chunk = decoder.process_chunk(
++                    conditioning=cond,
++                    reference_mel=ref_mel,
++                    codec_all=codec,
++                    y_all=y_all,
++                    i=chunk_index,
++                    steps=steps,
++                    prev_generated=prev_mel if prev_mel is not None else [],
++                    finished=False,
++                )
++                wav_chunks.append(audio_chunk)
++                chunk_index += 1
++
++            if chunk_index == 0:
++                return self.token2wav(
++                    code=codec,
++                    conditioning=cond,
++                    reference_mel=ref_mel,
++                    num_steps=steps,
++                ).reshape(-1)
++
++            _, audio_chunk = decoder.process_chunk(
++                conditioning=cond,
++                reference_mel=ref_mel,
++                codec_all=codec,
++                y_all=y_all,
++                i=chunk_index,
++                steps=steps,
++                prev_generated=prev_mel,
++                finished=True,
++            )
++            wav_chunks.append(audio_chunk)
+ 
++        waveform = torch.cat(wav_chunks)
+         logger.info(
+-            "Currently, we do not use the chunked process, we only use the "
+-            "token2wav.process_chunk for the whole sequence. "
+-            "The stream mode will be implemented in the future."
++            "Qwen2.5-Omni Token2Wav decoded %d codec tokens in %d waveform chunks (%d samples)",
++            codec.shape[1],
++            len(wav_chunks),
++            waveform.numel(),
+         )
++        return waveform
+ 
+-        chunk_ends = []
+-        for i in range(codec.shape[1]):
+-            chunk_code_length = i * 2 - 24
+-            finished = i == (codec.shape[1] - 1)
+-            if (chunk_code_length > 0 and chunk_code_length % chunk_size == 0) or finished:
+-                chunk_ends.append(i)
++    def _codec_to_audio_stream_chunk(
++        self,
++        request_id: str,
++        codec_tokens: torch.Tensor | list[int],
++        finished: bool,
++        voice_type: str,
++    ) -> torch.Tensor:
++        """Decode newly available codec blocks with per-request mel continuity."""
++        decoder = self.token2wav.token2wav
++        decoder.batched_chunk = int(os.environ.get("QWEN25_OMNI_MEL_CHUNK_BLOCKS", 12))
++        if decoder.batched_chunk <= 0:
++            raise ValueError("QWEN25_OMNI_MEL_CHUNK_BLOCKS must be positive")
++        decoder.chunk_size = decoder.bs_mel * decoder.batched_chunk
++        device = self._module_device(self.token2wav)
++        codec = torch.as_tensor(codec_tokens, dtype=torch.long, device=device).reshape(1, -1)
++        if codec.numel() == 0:
++            if finished:
++                self._stream_audio_states.pop(request_id, None)
++            return torch.zeros(0, device=device)
++
++        cond, ref_mel = self._stream_audio_conditions(voice_type, device)
+ 
+-        # Number of chunks in mel domain
+-        prev_generated = None
+-        wav_chunks: list = []
++        state = self._stream_audio_states.setdefault(
++            request_id,
++            {"next_index": 0, "prev_mel": None, "noise": None},
++        )
++        total_mel = int(codec.shape[1] * decoder.factor)
++        noise = state["noise"]
++        if noise is None:
++            noise = torch.empty((1, 0, decoder.code2wav_dit_model.mel_dim), dtype=ref_mel.dtype, device=device)
++        if total_mel > noise.shape[1]:
++            more = torch.randn(
++                (1, total_mel - noise.shape[1], decoder.code2wav_dit_model.mel_dim),
++                dtype=ref_mel.dtype,
++                device=device,
++            )
++            noise = torch.cat((noise, more), dim=1)
++            state["noise"] = noise
+ 
++        chunks: list[torch.Tensor] = []
+         with torch.inference_mode():
+-            for n, i in enumerate([0]):
+-                finished = i == codec.shape[1] - 1
+-                _, audio_chunk = self.token2wav.process_chunk(
++            while total_mel >= (state["next_index"] + 1) * decoder.chunk_size + decoder.future_cache_size:
++                prev_mel, audio = decoder.process_chunk(
+                     conditioning=cond,
+                     reference_mel=ref_mel,
+                     codec_all=codec,
+-                    y_all=y_all,
+-                    i=n,
+-                    steps=steps,
+-                    prev_generated=prev_generated if prev_generated is not None else [],
+-                    finished=True,
++                    y_all=noise,
++                    i=state["next_index"],
++                    steps=10,
++                    prev_generated=state["prev_mel"] if state["prev_mel"] is not None else [],
++                    finished=False,
+                 )
+-                prev_generated = audio_chunk
+-                wav_chunks.append(audio_chunk.detach().cpu().numpy())
++                state["prev_mel"] = prev_mel
++                state["next_index"] += 1
++                chunks.append(audio)
++
++            if finished:
++                if state["next_index"] == 0:
++                    chunks.append(
++                        self.token2wav(
++                            code=codec,
++                            conditioning=cond,
++                            reference_mel=ref_mel,
++                            num_steps=10,
++                        ).reshape(-1)
++                    )
++                else:
++                    _, audio = decoder.process_chunk(
++                        conditioning=cond,
++                        reference_mel=ref_mel,
++                        codec_all=codec,
++                        y_all=noise,
++                        i=state["next_index"],
++                        steps=10,
++                        prev_generated=state["prev_mel"],
++                        finished=True,
++                    )
++                    chunks.append(audio)
++                self._stream_audio_states.pop(request_id, None)
++
++        audio_tensor = torch.cat(chunks) if chunks else torch.zeros(0, device=device)
++        logger.info(
++            "Qwen2.5-Omni stream req=%s codec=%d chunks=%d samples=%d finished=%s",
++            request_id,
++            codec.shape[1],
++            len(chunks),
++            audio_tensor.numel(),
++            finished,
++        )
++        return audio_tensor
+ 
+-        if len(wav_chunks) == 0:
+-            return torch.zeros(0, device=token2wav_dev)
++    def _stream_audio_conditions(self, voice_type: str, device: torch.device) -> tuple[torch.Tensor, torch.Tensor]:
++        cond = self._token2wav_conds.get(voice_type)
++        ref_mel = self._token2wav_ref_mels.get(voice_type)
++        if cond is None:
++            cond = torch.zeros((1, self.token2wav_config.dit_config.enc_emb_dim), device=device)
++        if ref_mel is None:
++            ref_mel = torch.zeros((1, 300, self.token2wav_config.dit_config.mel_dim), device=device)
++        return cond, ref_mel
+ 
+-        waveform = np.concatenate(wav_chunks)
+-        return torch.as_tensor(waveform, device=token2wav_dev)
++    def on_requests_finished(self, request_ids: set[str]) -> None:
++        if self.model_stage == "code2wav":
++            for request_id in request_ids:
++                self._stream_audio_states.pop(request_id, None)
+ 
+     def load_weights(self, weights: Iterable[tuple[str, torch.Tensor]]) -> set[str]:
+         """Load weights for all components of the omni model."""
+diff --git a/third_party/vllm-omni/vllm_omni/model_executor/models/qwen2_5_omni/qwen2_5_omni_token2wav.py b/third_party/vllm-omni/vllm_omni/model_executor/models/qwen2_5_omni/qwen2_5_omni_token2wav.py
+index 49d3ac1..9c1c0e7 100644
+--- a/third_party/vllm-omni/vllm_omni/model_executor/models/qwen2_5_omni/qwen2_5_omni_token2wav.py
++++ b/third_party/vllm-omni/vllm_omni/model_executor/models/qwen2_5_omni/qwen2_5_omni_token2wav.py
+@@ -1403,7 +1403,7 @@ class Qwen2_5OmniToken2WavModel(Qwen2_5OmniPreTrainedModel):
+                 mel_trim = generated[:, :, self.past_cache_size : -self.future_cache_size]
+             mel = torch.cat([prev_generated[:, :, -self.future_size * 2 :], mel_trim], dim=2)
+ 
+-        audio = self.code2wav_bigvgan_model(mel)
++        audio = self.code2wav_bigvgan_model(mel.to(self.code2wav_bigvgan_model.dtype))
+         if i == 0:
+             audio_output = audio[: -self.future_size * self.vocoder_hop]
+         elif finished:
+diff --git a/third_party/vllm-omni/vllm_omni/model_executor/stage_input_processors/qwen2_5_omni.py b/third_party/vllm-omni/vllm_omni/model_executor/stage_input_processors/qwen2_5_omni.py
+index 42377fa..2734966 100644
+--- a/third_party/vllm-omni/vllm_omni/model_executor/stage_input_processors/qwen2_5_omni.py
++++ b/third_party/vllm-omni/vllm_omni/model_executor/stage_input_processors/qwen2_5_omni.py
+@@ -1,12 +1,15 @@
+ import logging
++import os
+ 
+ import torch
+ from vllm.inputs import TextPrompt
+ 
+ from vllm_omni.data_entry_keys import (
++    CodesStruct,
+     EmbeddingsStruct,
+     HiddenStatesStruct,
+     IdsStruct,
++    MetaStruct,
+     OmniPayload,
+     OmniPayloadStruct,
+     to_dict,
+@@ -127,6 +130,37 @@ def talker2code2wav_full_payload(
+     }
+ 
+ 
++def talker2code2wav_async_chunk(
++    transfer_manager,
++    multimodal_output,
++    request,
++    is_finished: bool = False,
++) -> OmniPayloadStruct | None:
++    """Send cumulative codec ids when the next overlapping audio block is ready."""
++    del multimodal_output
++    request_id = request.external_req_id
++    finished = bool(is_finished or request.is_finished())
++    codec_ids = _strip_codec_boundaries(list(getattr(request, "output_token_ids", None) or []))
++    chunk_index = transfer_manager.put_req_chunk[request_id]
++    chunk_mel = 24 * int(os.environ.get("QWEN25_OMNI_MEL_CHUNK_BLOCKS", 12))
++    if chunk_mel <= 0:
++        raise ValueError("QWEN25_OMNI_MEL_CHUNK_BLOCKS must be positive")
++    chunk_codes = chunk_mel // 2
++    first_codes = (chunk_mel + 24) // 2
++    if not finished and len(codec_ids) < first_codes + chunk_codes * chunk_index:
++        return None
++    if not codec_ids and not finished:
++        return None
++    return OmniPayloadStruct(
++        codes=CodesStruct(audio=torch.tensor(codec_ids, dtype=torch.long).unsqueeze(0)),
++        meta=MetaStruct(
++            finished=torch.tensor(finished, dtype=torch.bool),
++            stream_finished=torch.tensor(finished, dtype=torch.bool),
++        ),
++        request_id=request_id,
++    )
++
++
+ # ============================================================================
+ # Worker-connector data plane (non-async-chunk path) -- thinker->talker.
+ #
+@@ -358,3 +392,37 @@ def thinker2talker_full_payload(
+     # carries no scheduler-relevant metadata (next_stage_prompt_len /
+     # left_context_size are not set on this edge).
+     return payload
++
++
++def thinker2talker_async_chunk(
++    transfer_manager,
++    multimodal_output,
++    request,
++    is_finished: bool = False,
++) -> OmniPayloadStruct | None:
++    """Collect thinker hidden states and hand off its complete reply to Talker."""
++    request_id = request.external_req_id
++    state = transfer_manager.request_payload.setdefault(request_id, {"hidden_parts": []})
++    if isinstance(multimodal_output, dict):
++        hidden = multimodal_output.get("hidden")
++        if isinstance(hidden, torch.Tensor) and hidden.numel():
++            state["hidden_parts"].append(hidden.detach().cpu())
++    if not (is_finished or request.is_finished()):
++        return None
++    hidden_parts = state["hidden_parts"]
++    transfer_manager.request_payload.pop(request_id, None)
++    if not hidden_parts:
++        return None
++    payload = thinker2talker_full_payload(
++        transfer_manager,
++        {"hidden": torch.cat(hidden_parts)},
++        request,
++    )
++    if payload is None:
++        return None
++    return OmniPayloadStruct(
++        hidden_states=HiddenStatesStruct(**payload["hidden_states"]),
++        embed=EmbeddingsStruct(**payload["embed"]),
++        ids=IdsStruct(**payload["ids"]),
++        meta=MetaStruct(finished=torch.tensor(True, dtype=torch.bool)),
++    )
+diff --git a/third_party/vllm-omni/vllm_omni/worker/gpu_ar_model_runner.py b/third_party/vllm-omni/vllm_omni/worker/gpu_ar_model_runner.py
+index 6cd2b35..526a360 100644
+--- a/third_party/vllm-omni/vllm_omni/worker/gpu_ar_model_runner.py
++++ b/third_party/vllm-omni/vllm_omni/worker/gpu_ar_model_runner.py
+@@ -298,9 +298,9 @@ class GPUARModelRunner(OmniGPUModelRunner, OmniConnectorModelRunnerMixin):
+     def __init__(self, *args, **kwargs):
+         super().__init__(*args, **kwargs)
+         self.input_ids = self._make_buffer(self.max_num_tokens, dtype=torch.int32)
+-        # each model stage has their own hidden size
+-        self.hidden_size = self.model_config.hf_text_config.hidden_size
+-        self.inputs_embeds = self._make_buffer(self.max_num_tokens, self.hidden_size, dtype=self.dtype, numpy=False)
++        self.inputs_embeds = self._make_buffer(
++            self.max_num_tokens, self.inputs_embeds_size, dtype=self.dtype, numpy=False
++        )
+         # Initialize KV cache manager (preserve vllm_config fallback behavior)
+         self.kv_transfer_manager = OmniKVTransferManager.from_vllm_config(self.vllm_config, self.model_config)
+         self._async_chunk = getattr(self.model_config, "async_chunk", False)
+@@ -313,6 +313,8 @@ class GPUARModelRunner(OmniGPUModelRunner, OmniConnectorModelRunnerMixin):
+         _OMNI_CONNECTOR_INIT_ARCHS = {
+             "Qwen3OmniMoeForConditionalGeneration",
+             "Qwen2_5OmniForConditionalGeneration",
++            "DenseEncoderAudioLLMSpeechThinker",
++            "DenseEncoderAudioLLMSpeechForConditionalGeneration",
+             "CovoAudioForConditionalGeneration",
+             "MiMoAudioModel",
+             "Qwen3TTSTalkerForConditionalGeneration",
+diff --git a/third_party/vllm-omni/vllm_omni/worker/gpu_generation_model_runner.py b/third_party/vllm-omni/vllm_omni/worker/gpu_generation_model_runner.py
+index c8fe92e..8a3f874 100644
+--- a/third_party/vllm-omni/vllm_omni/worker/gpu_generation_model_runner.py
++++ b/third_party/vllm-omni/vllm_omni/worker/gpu_generation_model_runner.py
+@@ -60,6 +60,7 @@ class GPUGenerationModelRunner(OmniGPUModelRunner, OmniConnectorModelRunnerMixin
+         _OMNI_CONNECTOR_INIT_ARCHS = {
+             "Qwen3OmniMoeForConditionalGeneration",
+             "Qwen2_5OmniForConditionalGeneration",
++            "DenseEncoderAudioLLMSpeechForConditionalGeneration",
+             "CovoAudioForConditionalGeneration",
+             "MiMoAudioModel",
+             "Qwen3TTSTalkerForConditionalGeneration",
+diff --git a/third_party/vllm-omni/vllm_omni/worker/omni_connector_model_runner_mixin.py b/third_party/vllm-omni/vllm_omni/worker/omni_connector_model_runner_mixin.py
+index b173f81..451a044 100644
+--- a/third_party/vllm-omni/vllm_omni/worker/omni_connector_model_runner_mixin.py
++++ b/third_party/vllm-omni/vllm_omni/worker/omni_connector_model_runner_mixin.py
+@@ -59,8 +59,6 @@ def should_accumulate_full_payload_output(model_config, custom_process_func) ->
+         return False
+     if getattr(model_config, "async_chunk", False):
+         return False
+-    if getattr(model_config, "final_output", False):
+-        return False
+     next_stage_func = getattr(model_config, "custom_process_next_stage_input_func", None)
+     if not isinstance(next_stage_func, str) or not next_stage_func:
+         return False
+diff --git a/third_party/vllm-omni/vllm_omni/model_executor/models/qwen2_5_omni/pipeline.py b/third_party/vllm-omni/vllm_omni/model_executor/models/qwen2_5_omni/pipeline.py
+index b4ed8ef..6235a7c 100644
+--- a/third_party/vllm-omni/vllm_omni/model_executor/models/qwen2_5_omni/pipeline.py
++++ b/third_party/vllm-omni/vllm_omni/model_executor/models/qwen2_5_omni/pipeline.py
+@@ -31,6 +31,7 @@ QWEN2_5_OMNI_PIPELINE = PipelineConfig(
+             engine_output_type="latent",
+             sampling_constraints={"detokenize": True},
+             custom_process_next_stage_input_func=f"{_PROC}.thinker2talker_full_payload",
++            async_chunk_process_next_stage_input_func=f"{_PROC}.thinker2talker_async_chunk",
+         ),
+         StagePipelineConfig(
+             stage_id=1,
+@@ -40,6 +41,7 @@ QWEN2_5_OMNI_PIPELINE = PipelineConfig(
+             engine_output_type="latent",
+             sync_process_input_func=f"{_PROC}.thinker2talker_token_only",
+             custom_process_next_stage_input_func=f"{_PROC}.talker2code2wav_full_payload",
++            async_chunk_process_next_stage_input_func=f"{_PROC}.talker2code2wav_async_chunk",
+             sampling_constraints={
+                 "detokenize": True,
+                 "stop_token_ids": [8294],
+diff --git a/third_party/vllm-omni/vllm_omni/entrypoints/openai/serving_chat.py b/third_party/vllm-omni/vllm_omni/entrypoints/openai/serving_chat.py
+--- a/third_party/vllm-omni/vllm_omni/entrypoints/openai/serving_chat.py
++++ b/third_party/vllm-omni/vllm_omni/entrypoints/openai/serving_chat.py
+@@ -1092,6 +1092,9 @@
+             value = getattr(request, field_name, None)
+             if (value is not None and not isinstance(value, list)) or (isinstance(value, list) and len(value) > 0):
+                 setattr(params, field_name, value)
++
++        if request.structured_outputs is not None:
++            params.structured_outputs = request.structured_outputs
+ 
+         # For GLM-Image: compute max_tokens from height/width with mode-aware
+         # budgeting (t2i vs i2i).

@@ -2,7 +2,7 @@
 
 ## 同机
 
-GPU服务按README启动并看到 `OPT_READY` 后，在同一checkout运行 `python3 scripts/connect_local.py`。它把endpoint令牌复制到本地代理配置，不打印令牌。再运行 `VEHICLE_LOCAL_PORT=8770 python3 local_server.py`，访问 `http://127.0.0.1:8770/slai/`。
+GPU服务按README启动并看到 `OPT_READY` 或 `VEHICLE_VLLM_READY` 后，在同一checkout运行 `python3 scripts/connect_local.py`。它把endpoint令牌复制到本地代理配置，不打印令牌。再运行 `VEHICLE_LOCAL_PORT=8770 python3 local_server.py`，访问 `http://127.0.0.1:8770/slai/`。
 
 UI代理仅监听本机。若GPU在远端，使用下述隧道，不应直接公开未配置网络访问控制的GPU端口。
 
@@ -17,6 +17,7 @@ export VEHICLE_SSH_TARGET=your-user@your-gateway
 export VEHICLE_SSH_PORT=22
 export VEHICLE_REMOTE_ENDPOINT=/absolute/remote/checkout/runtime/endpoint.json
 export VEHICLE_TUNNEL_PORT=18841
+export VEHICLE_EXPECT_BUILD=native3b-vllm-streaming-v1  # 双卡流式服务
 # 可选：export VEHICLE_SSH_KEY=/absolute/path/to/your/key
 python3 server_omni25_opt/connect.py
 ```

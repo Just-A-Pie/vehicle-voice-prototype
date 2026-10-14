@@ -4,6 +4,7 @@
 /models/
 /recordings/
 /output/
+/third_party/vllm-omni/
 /dist/
 /vendor/
 **/__pycache__/
