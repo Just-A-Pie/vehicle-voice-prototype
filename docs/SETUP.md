@@ -1,3 +1,5 @@
+> 本文保留 Qwen2.5-Omni 原方案；macOS 展示部署请看 [MACOS_DEMO.md](MACOS_DEMO.md)，checkpoint-48 合同请看 [MODEL_CONTRACT.md](MODEL_CONTRACT.md)。
+
 # 启动与连接
 
 ## 同机

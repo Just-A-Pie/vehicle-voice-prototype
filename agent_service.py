@@ -78,7 +78,7 @@ def run_agent(bot,messages,events):
 
 @app.get('/health')
 def health(authorization:str=Header(default='')):
-    auth(authorization);return {'ready':backend is not None,'model':getattr(backend,'model_name','Qwen3-Omni-30B-A3B-Instruct'),'speech':(getattr(backend,'engine_info',None) or {}).get('speech_model','Qwen3-Omni native'),'busy':LOCK.locked(),'build':BUILD,'profiles':getattr(backend,'supported_profiles',['legacy','slai']),'streaming_audio':hasattr(backend,'audio_sink'),'engine_info':getattr(backend,'engine_info',None)}
+    auth(authorization);upstream=backend.health_status() if hasattr(backend,'health_status') else {};return {'ready':backend is not None and upstream.get('ready',True),'model':getattr(backend,'model_name','Qwen3-Omni-30B-A3B-Instruct'),'speech':(getattr(backend,'engine_info',None) or {}).get('speech_model','Qwen3-Omni native'),'busy':LOCK.locked() or upstream.get('busy',False),'build':BUILD,'profiles':getattr(backend,'supported_profiles',['legacy','slai']),'streaming_audio':hasattr(backend,'audio_sink'),'engine_info':getattr(backend,'engine_info',None)}
 @app.post('/session')
 def session(p:Payload,authorization:str=Header(default='')):
     auth(authorization);sid,s=get_session(p.session_id,p.profile);return {'session_id':sid,'state':s['vehicle'].state()}
@@ -90,6 +90,18 @@ def reset(p:Payload,authorization:str=Header(default='')):
         sid,s=get_session(p.session_id,p.profile);s['vehicle']=CabinVehicle() if p.profile=='slai' else Vehicle();s['history']=[];
         if hasattr(backend,'drop_session'):backend.drop_session(sid)
         return {'session_id':sid,'state':s['vehicle'].state()}
+    finally:LOCK.release()
+
+@app.post('/clear-history')
+def clear_history(p:Payload,authorization:str=Header(default='')):
+    auth(authorization)
+    if not LOCK.acquire(False):raise HTTPException(409,'本轮处理尚未结束')
+    try:
+        sid,s=get_session(p.session_id,p.profile)
+        if hasattr(backend,'drop_session'):backend.drop_session(sid)
+        s['history']=[]
+        audit(p.request_id or str(uuid.uuid4()),'history_cleared',{'session_id':sid,'state':s['vehicle'].state()})
+        return {'session_id':sid,'state':s['vehicle'].state(),'history_cleared':True}
     finally:LOCK.release()
 
 @app.post('/control')
@@ -239,7 +251,7 @@ def turn_stream(p:Payload,authorization:str=Header(default='')):
 if __name__=='__main__':
     from omni_backend import OmniBackend
     import uvicorn
-    backend=OmniBackend(os.environ['VEHICLE_MODEL_PATH'])
+    backend=OmniBackend('/mnt/afs/models/Qwen3-Omni-30B-A3B-Instruct')
     port=int(os.environ.get('VEHICLE_PORT','18765'))
     endpoint={'host':socket.gethostbyname(socket.gethostname()),'port':port,'token':TOKEN,'pid':os.getpid(),'started':time.time()}
     path=RUN/'endpoint.json';path.write_text(json.dumps(endpoint));path.chmod(0o600)

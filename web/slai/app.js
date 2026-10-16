@@ -1,5 +1,5 @@
 import {initialState,defaultPatch,windowKeys,windowNames,doorKeys,doorNames,parameters,controlSchema,applyPatch,validatePatch,parseCommand,palette,chooseSuggestion,trackNames} from './controls.mjs?v=47';
-import {mountScene} from './scene.js?v=label-sync-20261012';
+import {mountScene} from './scene.js?v=rose-20261016';
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)],shell=$('.cockpit');
 const state=initialState();
 const icons={progress:'<path d="M20 12a8 8 0 11-8-8"/><circle cx="12" cy="4" r="1" fill="currentColor"/>',fan:'<circle cx="12" cy="12" r="2"/><path d="M10 10C0 2 16-3 14 8M14 10c8-10 13 6 2 4M14 14c10 8-6 13-4 2M10 14c-8 10-13-6-2-4"/>',play:'<path d="M8 4l12 8-12 8z" fill="currentColor" stroke="none"/>',pause:'<path d="M7 5v14M17 5v14" stroke-width="3"/>',next:'<path d="M18 5v14M5 5l10 7-10 7z"/>',car:'<path d="M4 10l2-6h12l2 6M3 17h18V10H3zM5 17v3M19 17v3M6 13h2M16 13h2"/>',micOff:'<path d="M9 7V5a3 3 0 016 0v6M9 11v1a3 3 0 004 3M5 10v2a7 7 0 0012 5M19 10v2M12 19v3M8 22h8M3 3l18 18"/>',keyboard:'<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M6 9h1M11 9h1M16 9h1M6 13h1M11 13h1M16 13h1M8 16h8"/>',check:'<path d="M5 12l4 4L19 6"/>',error:'<circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 17h.01"/>'};

@@ -24,15 +24,18 @@ export function mountScene(state,onReady,onMotion=()=>{},onTelemetry=()=>{}){
  const scene=new THREE.Scene();
  const camera=new THREE.PerspectiveCamera(35,1,.03,100),camPos=new THREE.Vector3(),camTarget=new THREE.Vector3(0,.7,0);
  const studio=new RoomEnvironment();
- for(const [x,y,z,w,h,tint,power,rx,ry]of [[-4,4,0,1.2,9,0xe4f2ff,1.8,-Math.PI/2,0],[4,2,-1,.5,8,0x95b8cc,1.2,0,Math.PI/2],[0,5,-4,8,.8,0xffffff,1.6,-Math.PI/2,0]]){const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({color:tint,side:THREE.DoubleSide}));m.material.color.multiplyScalar(power);m.position.set(x,y,z);m.rotation.set(rx,ry,0);studio.add(m);}
- const pmrem=new THREE.PMREMGenerator(renderer),environment=pmrem.fromScene(studio,.025).texture;scene.environment=environment;scene.environmentIntensity=.65;pmrem.dispose();studio.dispose();
+ // The stock room uses very bright white emitters; soften them before baking
+ // so the lacquer retains its colour instead of clipping into white patches.
+ studio.traverse(o=>{if(o.isLight)o.intensity*=.4;if(o.isMesh&&o.material?.emissiveIntensity)o.material.emissiveIntensity*=.18;});
+ for(const [x,y,z,w,h,tint,power,rx,ry]of [[-4,4,0,1.2,9,0xe4f2ff,.9,-Math.PI/2,0],[4,2,-1,.5,8,0x95b8cc,.65,0,Math.PI/2],[0,5,-4,8,.8,0xffe9ef,.8,-Math.PI/2,0]]){const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({color:tint,side:THREE.DoubleSide}));m.material.color.multiplyScalar(power);m.position.set(x,y,z);m.rotation.set(rx,ry,0);studio.add(m);}
+ const pmrem=new THREE.PMREMGenerator(renderer),environment=pmrem.fromScene(studio,.055).texture;scene.environment=environment;scene.environmentIntensity=.65;pmrem.dispose();studio.dispose();
  scene.add(new THREE.HemisphereLight(0xc6d9ef,0x080c13,.95));
- const key=new THREE.DirectionalLight(0xfff1e9,1.8);key.position.set(-3,7,-4);key.castShadow=true;key.shadow.mapSize.set(2048,2048);Object.assign(key.shadow.camera,{left:-6,right:6,top:6,bottom:-6,near:.1,far:25});key.shadow.bias=-.00015;key.shadow.normalBias=.018;scene.add(key);
+ const key=new THREE.DirectionalLight(0xfff1e9,1.35);key.position.set(-3,7,-4);key.castShadow=true;key.shadow.mapSize.set(2048,2048);Object.assign(key.shadow.camera,{left:-6,right:6,top:6,bottom:-6,near:.1,far:25});key.shadow.bias=-.00015;key.shadow.normalBias=.018;scene.add(key);
  const rim=new THREE.DirectionalLight(0xa8c5d8,.5);rim.position.set(5,2,2);scene.add(rim);
  const fill=new THREE.DirectionalLight(0xe8eaff,.55);fill.position.set(-5,1,4);scene.add(fill);
- const overhead=new THREE.DirectionalLight(0xf1f4fb,.85);overhead.position.set(.4,10,.6);scene.add(overhead);
- const paints={silver:['#c9ced6',.62,.24],graphite:['#34383f',.7,.3],midnight:['#16233a',.65,.26],pearl:['#e6e4df',.12,.2],red:['#ac1023',.28,.31]};
- const paint=paints[new URLSearchParams(location.search).get('paint')]||paints.silver;
+ const overhead=new THREE.DirectionalLight(0xf1f4fb,.25);overhead.position.set(.4,10,.6);scene.add(overhead);
+ const paints={silver:['#c9ced6',.62,.24],graphite:['#34383f',.7,.3],midnight:['#16233a',.65,.26],pearl:['#e6e4df',.12,.2],red:['#ad1747',.48,.32]};
+ const paint=paints[new URLSearchParams(location.search).get('paint')]||paints.red;
  // Short-range interior lights illuminate seats and door trim; no additional shadow passes.
  const cabinLights=[];
  for(const z of[-.28,.8])for(const x of[-.5,.5]){const light=new THREE.SpotLight(0x86dcff,0,2.3,1.0,.9,2);light.position.set(x,1.16,z);light.target.position.set(x*.25,.45,z);scene.add(light,light.target);cabinLights.push(light);}
@@ -108,9 +111,9 @@ export function mountScene(state,onReady,onMotion=()=>{},onTelemetry=()=>{}){
  const loader=new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);loader.load('./assets/family-sedan.70259c87b911.glb',gltf=>{
   model=new THREE.Group();const car=gltf.scene;car.updateMatrixWorld(true);const bounds=new THREE.Box3().setFromObject(car),size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3()),scale=4.7/size.z;
   car.position.set(-center.x,-bounds.min.y,-center.z);model.add(car);model.scale.setScalar(scale);scene.add(model);model.updateMatrixWorld(true);
-  car.traverse(o=>{if(!o.isMesh)return;o.castShadow=true;o.receiveShadow=true;const original=Array.isArray(o.material)?o.material:[o.material];const copies=original.map(m=>{if(/primary|paint_black/.test((o.name+' '+m.name).toLowerCase())){const coat=new THREE.MeshPhysicalMaterial();THREE.MeshStandardMaterial.prototype.copy.call(coat,m);coat.clearcoat=1;coat.clearcoatRoughness=.08;return coat;}return m.clone();});o.material=Array.isArray(o.material)?copies:copies[0];
+  car.traverse(o=>{if(!o.isMesh)return;o.castShadow=true;o.receiveShadow=true;const original=Array.isArray(o.material)?o.material:[o.material];const copies=original.map(m=>{if(/primary|paint_black/.test((o.name+' '+m.name).toLowerCase())){const coat=new THREE.MeshPhysicalMaterial();THREE.MeshStandardMaterial.prototype.copy.call(coat,m);coat.clearcoat=.45;coat.clearcoatRoughness=.22;coat.specularIntensity=.65;return coat;}return m.clone();});o.material=Array.isArray(o.material)?copies:copies[0];
    copies.forEach(m=>{const name=(o.name+' '+m.name).toLowerCase();m.envMap=environment;m.envMapIntensity=.6;for(const k of['map','normalMap','roughnessMap','metalnessMap'])if(m[k])m[k].anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());
-    if(/primary|paint_black/.test(name)){m.color.set(paint[0]);m.metalness=paint[1];m.roughness=paint[2];m.vertexColors=false;m.transparent=false;m.depthWrite=true;m.needsUpdate=true;}
+    if(/primary|paint_black/.test(name)){m.envMapIntensity=.42;m.color.set(paint[0]);m.metalness=paint[1];m.roughness=paint[2];m.vertexColors=false;m.transparent=false;m.depthWrite=true;m.needsUpdate=true;}
     if(/glass/.test(name)){m.color.set('#355262');m.transparent=true;m.opacity=.4;m.depthWrite=false;m.metalness=.05;m.roughness=.25;m.envMapIntensity=.25;glass.push(m);}
     if(/seat.*leather|leather_white/.test(name)){m.color.set('#c6d0d5');m.roughness=.8;m.metalness=.03;m.envMapIntensity=.85;m.emissive.set('#172a36');m.emissiveIntensity=.12;}
     if(/right_front_light|left_front_light|foglight/.test(name)){m.emissive.set('#bde8ff');lamps.push({m,front:true});}

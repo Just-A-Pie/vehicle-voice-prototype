@@ -21,3 +21,10 @@ id_ed25519*
 node_modules/
 
 # web/slai/vendor and the small synthetic regression WAVs are intentional assets.
+*.safetensors
+*.ckpt
+*.pth
+*.pt
+*.p12
+*.pfx
+*.cer

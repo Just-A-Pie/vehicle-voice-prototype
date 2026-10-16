@@ -296,3 +296,21 @@ input[type=range]::-webkit-slider-thumb{width:18px;height:18px;background:var(--
  .suggestion-line{right:16px;left:16px;max-width:none}
  .feedback{left:50%;max-width:calc(100% - 32px);bottom:calc(var(--dock) + 24px)}.feedback #response{font-size:17px}
 }
+
+/* Hands-free switch stays available while the current reply is playing. */
+.d-voice #voice-continuous{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 10px;color:var(--ink-2);font-size:13px;white-space:nowrap;border-radius:12px}
+#voice-continuous i{display:block;width:32px;height:20px;border-radius:20px;background:var(--hair);padding:3px;transition:background .2s}
+#voice-continuous i:after{content:'';display:block;width:14px;height:14px;background:var(--ink-3);border-radius:50%;transition:transform .2s}
+#voice-continuous[aria-checked=true] i{background:#792f3d}
+#voice-continuous[aria-checked=true] i:after{background:#fff;transform:translateX(12px)}
+#voice-continuous:disabled{opacity:.4}
+#voice-continuous:focus-visible{outline:2px solid #792f3d;outline-offset:3px}
+.d-voice #voice-record[hidden]{display:none}
+@media(max-width:1500px){.d-voice{gap:6px}.d-voice #voice-status{font-size:12px}.d-voice #voice-status small{font-size:10px}}
+@media(max-width:700px){.d-voice{flex-basis:100%;justify-content:center;flex-wrap:wrap}.d-voice #voice-status{display:block;flex-basis:100%;text-align:center;font-size:12px}.dock>.d-voice{height:auto;min-height:70px;padding:6px}.cockpit{--dock:240px}.d-voice #voice-record{height:40px;font-size:13px;padding-right:12px}}
+
+@media(max-width:700px){.d-voice{order:1}.d-tools{margin-left:auto}}
+
+.remote-model select{width:100%;min-height:44px;margin:10px 0 12px;padding:10px 12px;border:1px solid var(--hair);border-radius:10px;background:#171a22;color:#eef0f4;font:inherit;font-size:14px;appearance:auto}.remote-model select:focus-visible{outline:2px solid #a7d9ca;outline-offset:2px}.remote-model button{width:100%;min-height:42px}.remote-model button:disabled,.remote-model select:disabled{opacity:.45;cursor:default}#remote-model-status{font-size:13px;line-height:1.6;color:var(--ink-2);overflow-wrap:anywhere;margin:12px 0 0}.remote-model .remote-note{margin-top:8px;font-size:12px}
+
+.remote-model button[hidden]{display:none!important}

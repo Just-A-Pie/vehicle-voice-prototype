@@ -1,4 +1,4 @@
-import './app.js?v=label-sync-20261012';
+import './app.js?v=rose-20261016';
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const shell=$('.cockpit'),cockpit=window.slaiCockpit,reduced=matchMedia('(prefers-reduced-motion: reduce)');
 const MIN=16,MAX=28,STEP=.5,EASE='cubic-bezier(.2,.8,.2,1)',SPRING='cubic-bezier(.34,1.4,.5,1)';

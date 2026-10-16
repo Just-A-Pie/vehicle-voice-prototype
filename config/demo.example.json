@@ -1,0 +1,23 @@
+{
+  "default_profile": "checkpoint48",
+  "web_port": 8765,
+  "open_browser": true,
+  "checkpoint48": {
+    "enabled": true,
+    "ssh_target": "",
+    "ssh_port": null,
+    "ssh_key": "",
+    "remote_endpoint": "",
+    "tunnel_port": 18948,
+    "gateway_port": 18748
+  },
+  "api": {
+    "enabled": false,
+    "base_url": "",
+    "model": "qwen3.8-omni-flash-realtime",
+    "speech_model": "qwen3.8-omni-flash-realtime",
+    "voice": "longanlingxin",
+    "usage_authorized": false,
+    "gateway_port": 18766
+  }
+}

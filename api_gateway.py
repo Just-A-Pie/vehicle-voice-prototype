@@ -37,7 +37,7 @@ def main():
                 service.backend=RealtimeAgent(updated)
                 active[0]=updated
         return await call_next(request)
-    port=18766
+    port=int(os.environ.get('VEHICLE_API_PORT','18766'))
     path=ROOT/'runtime/connection-api.json'
     fd=os.open(path,os.O_WRONLY|os.O_CREAT|os.O_TRUNC,0o600)
     with os.fdopen(fd,'w') as f:json.dump({'local_port':port,'token':service.TOKEN},f)

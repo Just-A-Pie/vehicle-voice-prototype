@@ -2,7 +2,7 @@
 import json,os,urllib.request
 from pathlib import Path
 ROOT=Path(__file__).parent
-PROFILES={'local':'mnn-connection.json','api':'connection-api.json','server':'connection.json','server3b':'connection-native3b.json'}
+PROFILES={'local':'mnn-connection.json','api':'connection-api.json','server':'connection.json','server3b':'connection-native3b.json','checkpoint48':'connection-checkpoint48.json'}
 def selection_path(connection):return connection.with_name(connection.stem+'-selection.json')
 def resolved(connection):
     p=selection_path(connection)
@@ -20,7 +20,7 @@ def write_json(path,data):
 def save(connection,data):
     profile=data.get('profile')
     if profile not in PROFILES:raise ValueError('请选择有效连接')
-    if profile=='api':
+    if profile=='api' and 'settings' in data:
         from urllib.parse import urlparse
         values=data.get('settings',{});url=urlparse(values.get('base_url',''))
         if url.scheme!='https' or not (url.hostname or '').endswith('.aliyuncs.com') or url.username or url.password or url.query or url.fragment:raise ValueError('仅支持现有百炼适配器的官方 HTTPS 地址')
